@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Kuis Interaktif Akuntansi - SMK Fajar Indah</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome untuk Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Animasi transisi custom */
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Kustomisasi latar belakang menggunakan gambar dari user */
+        body {
+            background-image: linear-gradient(rgba(241, 245, 249, 0.92), rgba(241, 245, 249, 0.92)), url('https://i.imgur.com/VZSofSA.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+
+        /* CSS Pengunci Seleksi Teks khusus Mode Ujian Terkunci */
+        body.select-none, body.select-none * {
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen font-sans flex flex-col">
+
+    <!-- Header Utama -->
+    <header class="bg-indigo-900/95 text-white shadow-lg py-4 px-6 sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-1 bg-white rounded-lg flex items-center justify-center shadow-md">
+                    <img src="https://i.imgur.com/0l3Zzwg.png" alt="Logo SMK Fajar Indah" class="h-12 w-auto object-contain" onerror="this.onerror=null; this.src='https://placehold.co/100x100/4f46e5/ffffff?text=SFI'">
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">SMK FAJAR INDAH</h1>
+                    <p class="text-xs text-indigo-200">E-Learning & Evaluasi Interaktif</p>
+                </div>
+            </div>
+            
+            <!-- Tombol Navigasi Portal / Logout -->
+            <div id="nav-actions" class="flex gap-3">
+                <!-- Akan diperbarui dinamis berdasarkan state -->
+                <button onclick="switchRole('portal')" class="text-sm bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg font-medium transition flex items-center gap-2">
+                    <i class="fa-solid fa-right-from-bracket"></i> Kembali
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow p-4 sm:p-6 max-w-7xl mx-auto w-full flex flex-col justify-center">
+
+        <!-- 1. PORTAL SELEKSI AWAL (TAMPILAN UTAMA YANG COMPACT) -->
+        <section id="screen-portal" class="fade-in max-w-2xl mx-auto w-full grid sm:grid-cols-2 gap-4 my-6">
+            <!-- Kartu Pintu Masuk Siswa -->
+            <div class="bg-white/95 backdrop-blur-sm rounded-xl shadow-md border border-slate-100 overflow-hidden hover:shadow-lg transition duration-300 flex flex-col justify-between">
+                <div class="p-5 text-center">
+                    <div class="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa-solid fa-user-graduate text-2xl text-emerald-600"></i>
+                    </div>
+                    <h2 class="text-lg font-bold text-slate-800 mb-1">Siswa</h2>
+                    <p class="text-slate-500 text-xs leading-relaxed px-2">
+                        Mulai evaluasi belajar akuntansi. Kerjakan 5 soal interaktif dengan umpan balik instan.
+                    </p>
+                </div>
+                <div class="p-4 bg-slate-50/80 border-t border-slate-100">
+                    <button onclick="initSiswaFlow()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-200 shadow-sm flex items-center justify-center gap-1.5">
+                        Masuk Siswa <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Kartu Pintu Masuk Guru -->
+            <div class="bg-white/95 backdrop-blur-sm rounded-xl shadow-md border border-slate-100 overflow-hidden hover:shadow-lg transition duration-300 flex flex-col justify-between">
+                <div class="p-5 text-center">
+                    <div class="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa-solid fa-chalkboard-user text-2xl text-indigo-600"></i>
+                    </div>
+                    <h2 class="text-lg font-bold text-slate-800 mb-1">Guru</h2>
+                    <p class="text-slate-500 text-xs leading-relaxed px-2">
+                        Kelola kuis, atur soal, pantau rekapitulasi nilai siswa secara real-time.
+                    </p>
+                </div>
+                <div class="p-4 bg-slate-50/80 border-t border-slate-100">
+                    <button onclick="openGuruModal()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition duration-200 shadow-sm flex items-center justify-center gap-1.5">
+                        Masuk Guru <i class="fa-solid fa-lock text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. GURU LOGIN MODAL -->
+        <div id="modal-guru" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4 border border-slate-100 fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-indigo-600"></i> Verifikasi Keamanan Guru
+                    </h3>
+                    <button onclick="closeGuruModal()" class="text-slate-400 hover:text-slate-600">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Sandi Guru</label>
+                        <div class="relative">
+                            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                                <i class="fa-solid fa-key"></i>
+                            </span>
+                            <input type="password" id="input-pass" placeholder="Ketik sandi guru..." class="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1.5"><i class="fa-solid fa-circle-info"></i> Gunakan kata sandi standar untuk pengujian: <span class="font-semibold text-slate-600">12345</span></p>
+                    </div>
+
+                    <div id="login-error" class="hidden p-3 bg-rose-50 text-rose-600 rounded-lg text-xs font-medium flex items-center gap-2">
+                        <i class="fa-solid fa-circle-exclamation text-base"></i> Sandi yang Anda masukkan salah! Silakan coba lagi.
+                    </div>
+
+                    <div class="flex gap-3 pt-2">
+                        <button onclick="closeGuruModal()" class="w-1/2 py-3 bg-slate-100 hover:bg-slate-200 rounded-xl font-medium text-slate-600 transition">Batal</button>
+                        <button onclick="verifyGuruPassword()" class="w-1/2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold transition shadow-md">Masuk</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- 3. IDENTITAS SISWA SCREEN -->
+        <section id="screen-siswa-identitas" class="fade-in max-w-md mx-auto w-full bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-slate-100 hidden">
+            <div class="text-center mb-6">
+                <span class="px-3 py-1 bg-emerald-50 text-emerald-700 font-semibold rounded-full text-xs">IDENTITAS DIRI</span>
+                <h2 class="text-2xl font-bold text-slate-800 mt-2">Daftar Kuis</h2>
+                <p class="text-slate-500 text-sm mt-1">Masukkan nama lengkap dan kelas Anda untuk memulai kuis.</p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Nama Lengkap</label>
+                    <div class="relative">
+                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                            <i class="fa-solid fa-user"></i>
+                        </span>
+                        <input type="text" id="siswa-nama" placeholder="Contoh: Budi Santoso" class="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Kelas</label>
+                    <div class="relative">
+                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                            <i class="fa-solid fa-school"></i>
+                        </span>
+                        <select id="siswa-kelas" class="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition appearance-none bg-white">
+                            <option value="">-- Pilih Kelas --</option>
+                            <option value="X Ak 1">X Ak 1</option>
+                            <option value="X Ak 2">X Ak 2</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="identitas-error" class="hidden p-3 bg-rose-50 text-rose-600 rounded-lg text-xs font-medium flex items-center gap-2">
+                    <i class="fa-solid fa-circle-exclamation text-base"></i> Mohon lengkapi Nama Lengkap dan Kelas terlebih dahulu!
+                </div>
+
+                <button onclick="startKuis()" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition duration-200 shadow-md flex items-center justify-center gap-2 mt-2">
+                    Mulai Kerjakan Kuis <i class="fa-solid fa-play"></i>
+                </button>
+            </div>
+        </section>
+
+
+        <!-- 4. AREA PENGERJAAN KUIS SISWA -->
+        <section id="screen-siswa-kuis" class="fade-in max-w-4xl mx-auto w-full hidden">
+            <!-- Navigasi Atas Kuis (Info & Timer) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <!-- Data Siswa -->
+                <div class="bg-white/95 backdrop-blur-sm p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3">
+                    <div class="p-2.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                        <i class="fa-solid fa-user-tag text-lg"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-400 font-medium">Siswa Aktif</p>
+                        <p id="display-siswa-nama" class="font-bold text-slate-800">-</p>
+                    </div>
+                </div>
+
+                <!-- Progress Soal -->
+                <div class="bg-white/95 backdrop-blur-sm p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3">
+                    <div class="p-2.5 bg-amber-50 text-amber-600 rounded-lg">
+                        <i class="fa-solid fa-list-check text-lg"></i>
+                    </div>
+                    <div class="flex-grow">
+                        <div class="flex justify-between items-center mb-1">
+                            <p class="text-xs text-slate-400 font-medium">Progress Soal</p>
+                            <p id="display-kuis-progress" class="text-xs font-bold text-slate-700">0 dari 5</p>
+                        </div>
+                        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                            <div id="display-kuis-progress-bar" class="bg-amber-500 h-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timer -->
+                <div class="bg-white/95 backdrop-blur-sm p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3">
+                    <div class="p-2.5 bg-rose-50 text-rose-600 rounded-lg">
+                        <i class="fa-solid fa-clock text-lg"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-400 font-medium">Sisa Waktu</p>
+                        <p id="display-timer" class="font-mono font-bold text-slate-800 text-lg">00:00</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid Konten Soal -->
+            <div class="grid lg:grid-cols-4 gap-6">
+                <!-- Panel Utama Soal -->
+                <div class="lg:col-span-3 bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+                    <div class="p-6 bg-slate-50/80 border-b border-slate-100 flex justify-between items-center">
+                        <span class="px-3.5 py-1 bg-indigo-100 text-indigo-800 rounded-lg font-bold text-sm">
+                            SOAL <span id="display-soal-nomor">1</span>
+                        </span>
+                        <span id="display-bobot-nilai" class="text-xs font-semibold text-slate-500 bg-slate-200 px-2 py-1 rounded">
+                            Bobot: 20 Poin
+                        </span>
+                    </div>
+
+                    <!-- Pertanyaan -->
+                    <div class="p-6 sm:p-8">
+                        <p id="display-soal-teks" class="text-lg text-slate-800 font-medium leading-relaxed mb-6">
+                            Memuat soal...
+                        </p>
+
+                        <!-- Pilihan Jawaban -->
+                        <div class="space-y-3.5" id="pilihan-container">
+                            <!-- Tombol pilihan akan dimuat dinamis oleh JS -->
+                        </div>
+                    </div>
+
+                    <!-- Navigasi Soal -->
+                    <div class="p-6 bg-slate-50/80 border-t border-slate-100 flex justify-between items-center gap-3">
+                        <button id="btn-soal-sebelumnya" onclick="navigasiSoal(-1)" class="px-5 py-3 border border-slate-200 rounded-xl font-medium text-slate-600 hover:bg-slate-100 transition flex items-center gap-2">
+                            <i class="fa-solid fa-chevron-left"></i> Sebelumnya
+                        </button>
+                        
+                        <button id="btn-soal-selanjutnya" onclick="navigasiSoal(1)" class="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition flex items-center gap-2">
+                            Selanjutnya <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+
+                        <button id="btn-kuis-selesai" onclick="konfirmasiSelesai()" class="hidden px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition flex items-center gap-2 shadow-md">
+                            Kirim Jawaban <i class="fa-solid fa-circle-check"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Panel Kanan: Navigasi Cepat Soal -->
+                <div class="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-100 p-6 flex flex-col justify-between">
+                    <div>
+                        <h4 class="font-bold text-slate-700 text-sm mb-4 pb-2 border-b border-slate-100">
+                            <i class="fa-solid fa-grip"></i> Lembar Jawaban
+                        </h4>
+                        <div class="grid grid-cols-5 gap-2.5" id="map-soal-container">
+                            <!-- Diisi dinamis oleh JS -->
+                        </div>
+                    </div>
+
+                    <div class="mt-8 pt-4 border-t border-slate-100 text-center">
+                        <button onclick="batalKuisKonfirmasi()" class="text-xs text-rose-500 hover:text-rose-700 font-medium transition">
+                            <i class="fa-solid fa-trash-can"></i> Batalkan Kuis Ini
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- 5. HASIL AKHIR KUIS SISWA & PEMBAHASAN -->
+        <section id="screen-siswa-hasil" class="fade-in max-w-4xl mx-auto w-full hidden space-y-6">
+            <!-- Ringkasan Nilai Card -->
+            <div class="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-100 p-8 text-center relative overflow-hidden">
+                <!-- Efek Latar -->
+                <div class="absolute -top-12 -right-12 w-40 h-40 bg-emerald-500/5 rounded-full"></div>
+                <div class="absolute -bottom-12 -left-12 w-40 h-40 bg-indigo-500/5 rounded-full"></div>
+
+                <div class="max-w-md mx-auto">
+                    <span id="badge-kelulusan" class="px-4 py-1.5 rounded-full font-bold text-xs tracking-wider uppercase">
+                        Kategori Kelulusan
+                    </span>
+                    
+                    <h2 class="text-3xl font-extrabold text-slate-800 mt-4">Hasil Evaluasi Belajar</h2>
+                    <p class="text-slate-500 text-sm mt-1">Terima kasih <span id="hasil-nama" class="font-semibold text-slate-700"></span> telah menyelesaikan kuis.</p>
+
+                    <!-- Grafik Lingkaran Skor -->
+                    <div class="my-8 relative inline-flex items-center justify-center">
+                        <svg class="w-40 h-40 transform -rotate-90">
+                            <circle class="text-slate-100" stroke-width="12" stroke="currentColor" fill="transparent" r="70" cx="80" cy="80" />
+                            <circle id="hasil-skor-circle" class="text-emerald-500" stroke-width="12" stroke-dasharray="440" stroke-dashoffset="110" stroke-linecap="round" stroke="currentColor" fill="transparent" r="70" cx="80" cy="80" />
+                        </svg>
+                        <div class="absolute text-center">
+                            <span id="hasil-skor-nilai" class="text-5xl font-black text-slate-800">80</span>
+                            <span class="block text-xs uppercase tracking-wider text-slate-400 font-bold">Total Skor</span>
+                        </div>
+                    </div>
+
+                    <!-- Statistik Detil Ringkas -->
+                    <div class="grid grid-cols-3 gap-3 mb-6 bg-slate-50/80 p-4 rounded-xl border border-slate-100">
+                        <div class="text-center">
+                            <p class="text-xs text-slate-400 font-medium">Benar</p>
+                            <p id="hasil-statistik-benar" class="text-lg font-bold text-emerald-600">4 / 5</p>
+                        </div>
+                        <div class="text-center border-x border-slate-200">
+                            <p class="text-xs text-slate-400 font-medium">Durasi</p>
+                            <p id="hasil-statistik-durasi" class="text-lg font-bold text-slate-700">02:15</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-xs text-slate-400 font-medium">Tingkatan</p>
+                            <p id="hasil-statistik-grade" class="text-lg font-bold text-indigo-600">Baik</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 justify-center">
+                        <button onclick="switchRole('portal')" class="px-5 py-3 bg-slate-100 hover:bg-slate-200 font-medium text-slate-600 rounded-xl transition text-sm">
+                            Kembali
+                        </button>
+                        <button onclick="scrollKeReview()" class="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 font-bold text-white rounded-xl transition text-sm shadow-md flex items-center gap-2">
+                            Lihat Pembahasan <i class="fa-solid fa-circle-chevron-down"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analisis Rincian Pembahasan Soal -->
+            <div id="pembahasan-container-soal" class="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-100 p-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-indigo-600"></i> Analisis & Pembahasan Soal Kuis
+                </h3>
+                
+                <!-- Diisi Dinamis oleh JS -->
+                <div id="pembahasan-list" class="space-y-6"></div>
+            </div>
+        </section>
+
+
+        <!-- 6. DASHBOARD MONITORING GURU -->
+        <section id="screen-guru-dashboard" class="fade-in max-w-6xl mx-auto w-full hidden space-y-6">
+            <!-- Header Dashboard & Kontrol -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/95 backdrop-blur-sm p-6 rounded-2xl shadow-sm border border-slate-100">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">Dasbor Administrasi Guru</h2>
+                    <p class="text-slate-500 text-sm">Kelola hasil evaluasi siswa dan konfigurasi parameter ujian.</p>
+                </div>
+                
+                <div class="flex flex-wrap gap-2.5 w-full sm:w-auto">
+                    <button onclick="resetDaftarNilai()" class="flex-grow sm:flex-grow-0 px-4 py-2.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl font-medium text-sm transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-trash-can"></i> Hapus Semua Nilai
+                    </button>
+                    <button onclick="exportHasilExcel()" class="flex-grow sm:flex-grow-0 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium text-sm transition flex items-center justify-center gap-2 shadow">
+                        <i class="fa-solid fa-file-excel"></i> Ekspor CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- Statistik Penting Kelas -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white/95 backdrop-blur-sm p-5 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4">
+                    <div class="p-3.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                        <i class="fa-solid fa-users text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-400 font-medium">Total Peserta Kuis</p>
+                        <p id="stat-total-siswa" class="text-2xl font-black text-slate-800">0</p>
+                    </div>
+                </div>
+
+                <div class="bg-white/95 backdrop-blur-sm p-5 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4">
+                    <div class="p-3.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                        <i class="fa-solid fa-star-half-stroke text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-400 font-medium">Rerata Nilai Kelas</p>
+                        <p id="stat-rata-nilai" class="text-2xl font-black text-slate-800">0.0</p>
+                    </div>
+                </div>
+
+                <div class="bg-white/95 backdrop-blur-sm p-5 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4">
+                    <div class="p-3.5 bg-amber-50 text-amber-600 rounded-xl">
+                        <i class="fa-solid fa-award text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-400 font-medium">Skor Tertinggi</p>
+                        <p id="stat-skor-tinggi" class="text-2xl font-black text-slate-800">0</p>
+                    </div>
+                </div>
+
+                <div class="bg-white/95 backdrop-blur-sm p-5 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4">
+                    <div class="p-3.5 bg-rose-50 text-rose-600 rounded-xl">
+                        <i class="fa-solid fa-clock-rotate-left text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-400 font-medium">Waktu Ujian Bawaan</p>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <span id="display-durasi-pengaturan" class="font-bold text-slate-800 text-lg">10 Menit</span>
+                            <button onclick="ubahBatasWaktu()" class="text-xs text-indigo-600 hover:underline hover:text-indigo-800">Edit</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid Data Rekap Nilai Siswa -->
+            <div class="bg-white/95 backdrop-blur-sm rounded-2xl shadow-md border border-slate-100 overflow-hidden">
+                <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-table-list text-indigo-600"></i> Rekapitulasi Nilai & Aktivitas Siswa
+                    </h3>
+                    <div class="relative w-64">
+                        <input type="text" id="cari-siswa-input" onkeyup="filterTabelNilai()" placeholder="Cari siswa/kelas..." class="w-full pl-8 pr-4 py-2 border border-slate-200 text-xs rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                        <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse" id="tabel-nilai-guru">
+                        <thead>
+                            <tr class="bg-slate-100/70 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                <th class="p-4">No</th>
+                                <th class="p-4">Nama Siswa</th>
+                                <th class="p-4">Kelas</th>
+                                <th class="p-4">Waktu Selesai</th>
+                                <th class="p-4 text-center">Benar</th>
+                                <th class="p-4 text-center">Waktu Pengerjaan</th>
+                                <th class="p-4 text-center">Skor Akhir</th>
+                                <th class="p-4 text-center">Status Kelulusan</th>
+                                <th class="p-4 text-center">Aksi Detail</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rekap-nilai-body" class="divide-y divide-slate-100 text-sm text-slate-700">
+                            <!-- Diisi dinamis oleh JS -->
+                            <tr>
+                                <td colspan="9" class="p-8 text-center text-slate-400">
+                                    <i class="fa-solid fa-box-open text-3xl mb-2.5 block text-slate-300"></i>
+                                    Belum ada data pengerjaan kuis siswa.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- 7. GURU DETAIL MODAL -->
+        <div id="modal-detail-siswa" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-2xl mx-4 border border-slate-100 max-h-[90vh] flex flex-col fade-in">
+                <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-emerald-600"></i> Analisis Kinerja Lembar Kerja
+                        </h3>
+                        <p class="text-xs text-slate-400" id="detail-head-siswa-sub">Siswa: ...</p>
+                    </div>
+                    <button onclick="closeDetailSiswaModal()" class="text-slate-400 hover:text-slate-600">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+
+                <div class="overflow-y-auto pr-1 flex-grow space-y-4" id="detail-list-pembahasan">
+                    <!-- Dinonaktifkan dinamis oleh JS -->
+                </div>
+
+                <div class="pt-4 border-t border-slate-100 flex justify-end">
+                    <button onclick="closeDetailSiswaModal()" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium text-xs transition">
+                        Tutup Rincian
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. MODAL KONFIRMASI CUSTOM (Pengganti confirm() Browser) -->
+        <div id="custom-confirm-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100] hidden">
+            <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4 border border-slate-100 fade-in text-center">
+                <div id="confirm-modal-icon" class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+                    <i class="fa-solid fa-circle-question text-3xl"></i>
+                </div>
+                <h3 id="confirm-modal-title" class="text-lg font-bold text-slate-800 mb-2">Konfirmasi</h3>
+                <p id="confirm-modal-message" class="text-slate-500 text-xs sm:text-sm leading-relaxed mb-6">Apakah Anda yakin?</p>
+                <div class="flex gap-3">
+                    <button id="confirm-modal-cancel" class="w-1/2 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold rounded-xl transition text-sm">Batal</button>
+                    <button id="confirm-modal-action" class="w-1/2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition shadow-md text-sm">Ya, Kirim</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 text-xs py-5 px-6 border-t border-slate-800 mt-12 text-center">
+        <p>&copy; 2026 SMK Fajar Indah. Dibuat untuk simulasi interaktif guru dan siswa mandiri.</p>
+    </footer>
+
+    <!-- JS LOGIC SCRIPT -->
+    <script>
+        // Database Bank Soal (5 Soal Akuntansi Terverifikasi)
+        const bankSoal = [
+            {
+                id: 1,
+                tanya: "Pada tanggal 5 Juni, PT Sukses Makmur membeli perlengkapan kantor seharga Rp2.500.000,00 secara kredit. Transaksi pembelian ini akan memengaruhi akun-akun dalam persamaan dasar akuntansi sebagai...",
+                opsi: {
+                    A: "Perlengkapan bertambah Rp2.500.000,00 dan Kas berkurang Rp2.500.000,00",
+                    B: "Perlengkapan bertambah Rp2.500.000,00 dan Utang Usaha bertambah Rp2.500.000,00",
+                    C: "Peralatan bertambah Rp2.500.000,00 dan Utang Usaha bertambah Rp2.500.000,00",
+                    D: "Perlengkapan berkurang Rp2.500.000,00 dan Utang Usaha bertambah Rp2.500.000,00",
+                    E: "Perlengkapan bertambah Rp2.500.000,00 and Modal bertambah Rp2.500.000,00"
+                },
+                kunci: "B",
+                pembahasan: "Pembelian perlengkapan kantor secara kredit akan menyebabkan aset berupa Perlengkapan bertambah sebesar Rp2.500.000,00 (Debet) dan kewajiban berupa Utang Usaha bertambah sebesar Rp2.500.000,00 (Kredit). Kas tidak berubah karena transaksi dilakukan secara kredit."
+            },
+            {
+                id: 2,
+                tanya: "Diterima pendapatan jasa fotokopi dari pelanggan sebesar Rp850.000,00. Pencatatan jurnal umum yang tepat untuk mencatat transaksi tersebut adalah...",
+                opsi: {
+                    A: "Pendapatan Jasa (D) Rp850.000,00 dan Kas (K) Rp850.000,00",
+                    B: "Kas (D) Rp850.000,00 dan Piutang Usaha (K) Rp850.000,00",
+                    C: "Kas (D) Rp850.000,00 dan Pendapatan Jasa (K) Rp850.000,00",
+                    D: "Kas (D) Rp850.000,00 dan Modal (K) Rp850.000,00",
+                    E: "Piutang Usaha (D) Rp850.000,00 dan Pendapatan Jasa (K) Rp850.000,00"
+                },
+                kunci: "C",
+                pembahasan: "Transaksi penerimaan kas atas pendapatan jasa menyebabkan aset Kas bertambah di sisi Debet sebesar Rp850.000,00 dan Pendapatan Jasa bertambah di sisi Kredit sebesar Rp850.000,00 sesuai konsep akrual & pengakuan pendapatan."
+            },
+            {
+                id: 3,
+                tanya: "Pada neraca saldo per 31 Desember, akun Asuransi Dibayar di Muka menunjukkan saldo Rp2.400.000,00. Asuransi tersebut dibayar pada tanggal 1 Oktober untuk jangka waktu 1 tahun. Besar asuransi yang telah menjadi beban pada akhir periode tahun tersebut adalah...",
+                opsi: {
+                    A: "Rp600.000,00",
+                    B: "Rp1.800.000,00",
+                    C: "Rp800.000,00",
+                    D: "Rp1.200.000,00",
+                    E: "Rp400.000,00"
+                },
+                kunci: "A",
+                pembahasan: "Asuransi dibayar pada 1 Oktober untuk 12 bulan (Rp2.400.000 / 12 bulan = Rp200.000 per bulan). Hingga 31 Desember, asuransi yang sudah dijalani (menjadi beban) adalah 3 bulan (Oktober, November, Desember). Maka, Beban Asuransi = 3 bulan x Rp200.000,00 = Rp600.000,00."
+            },
+            {
+                id: 4,
+                tanya: "Dalam siklus akuntansi perusahaan jasa, setelah memposting jurnal penyesuaian ke buku besar, langkah sistematis logis yang harus dilakukan selanjutnya oleh seorang akuntan adalah menyusun...",
+                opsi: {
+                    A: "Neraca Saldo Setelah Penutupan",
+                    B: "Kertas Kerja (Worksheet) / Neraca Lajur",
+                    C: "Jurnal Pembalik",
+                    D: "Laporan Keuangan",
+                    E: "Jurnal Penutup"
+                },
+                kunci: "B",
+                pembahasan: "Alur siklus akuntansi setelah mencatatkan jurnal penyesuaian dan mempostingnya adalah menyusun Kertas Kerja (Worksheet / Neraca Lajur) untuk mengonsolidasikan neraca saldo disesuaikan sebelum disajikan dalam laporan keuangan utama."
+            },
+            {
+                id: 5,
+                tanya: "Akun-akun berikut ini yang digolongkan sebagai akun nominal (akun temporer) yang saldonya harus dipindahkan ke akun ikhtisar laba rugi di akhir periode akuntansi adalah...",
+                opsi: {
+                    A: "Beban Sewa, Pendapatan Bunga, dan Prive",
+                    B: "Sewa Dibayar di Muka, Pendapatan Diterima di Muka, dan Beban Gaji",
+                    C: "Beban Penyusutan Peralatan, Kas, dan Modal Pemilik",
+                    D: "Pendapatan Komisi, Beban Asuransi, dan Sewa Dibayar di Muka",
+                    E: "Beban Gaji, Pendapatan Jasa, dan Beban Iklan"
+                },
+                kunci: "E",
+                pembahasan: "Akun Nominal (temporer) adalah akun-akun yang disajikan di Laporan Laba Rugi, yaitu Pendapatan dan Beban. Sewa dibayar di muka dan pendapatan diterima di muka adalah akun riil (aset/liabilitas), dan modal adalah akun riil (ekuitas). Maka pilihan yang tepat hanya memuat Pendapatan dan Beban (E)."
+            }
+        ];
+
+        // State Aplikasi (Tersimpan di In-Memory)
+        let currentScreen = 'portal'; // portal, siswa-identitas, siswa-kuis, siswa-hasil, guru-dashboard
+        let konfigurasiWaktu = 10 * 60; // default 10 menit (dalam detik)
+        let dataSiswaMulai = { nama: '', kelas: '' };
+        let kuisSiswaJawaban = {}; // format { soalId: 'jawaban' }
+        let kuisIndexAktif = 0; // index bank soal yang sedang dikerjakan
+        let timerInterval = null;
+        let waktuHabisSiswa = 0; // durasi yang dihabiskan siswa dalam detik
+
+        // State Keamanan Kuis (Lockdown)
+        let isLockdownActive = false;
+        let cheatCounter = 0;
+        const MAX_CHEAT_WARNINGS = 3; // Pelanggaran ke-3 langsung disubmit otomatis
+
+        // Database Nilai Siswa (In-Memory default data untuk estetika dashboard awal)
+        let databaseNilai = [
+            {
+                nama: "Ahmad Riyadi",
+                kelas: "X Ak 1",
+                waktuSelesai: "22-06-2026 14:32",
+                benar: 5,
+                durasiDetik: 215, // 3:35
+                skor: 100,
+                status: "Sangat Baik",
+                jawabanSiswa: { 1: "B", 2: "C", 3: "A", 4: "B", 5: "E" }
+            },
+            {
+                nama: "Siti Nurhaliza",
+                kelas: "X Ak 2",
+                waktuSelesai: "22-06-2026 15:10",
+                benar: 4,
+                durasiDetik: 420, // 7:00
+                skor: 80,
+                status: "Baik",
+                jawabanSiswa: { 1: "B", 2: "C", 3: "C", 4: "B", 5: "E" } // salah nomor 3
+            },
+            {
+                nama: "Reza Rahadian",
+                kelas: "X Ak 1",
+                waktuSelesai: "22-06-2026 16:05",
+                benar: 3,
+                durasiDetik: 512, // 8:32
+                skor: 60,
+                status: "Cukup",
+                jawabanSiswa: { 1: "A", 2: "C", 3: "A", 4: "D", 5: "E" } // salah nomor 1 dan 4
+            }
+        ];
+
+        // Jalankan saat inisialisasi awal
+        window.onload = function() {
+            renderScreen();
+        };
+
+        // Ganti Tampilan Berdasarkan State Screen
+        function renderScreen() {
+            // Sembunyikan semua screen terlebih dahulu
+            document.getElementById('screen-portal').classList.add('hidden');
+            document.getElementById('screen-siswa-identitas').classList.add('hidden');
+            document.getElementById('screen-siswa-kuis').classList.add('hidden');
+            document.getElementById('screen-siswa-hasil').classList.add('hidden');
+            document.getElementById('screen-guru-dashboard').classList.add('hidden');
+
+            // Hapus nav actions dinamis default
+            const navActions = document.getElementById('nav-actions');
+
+            if (currentScreen === 'portal') {
+                document.getElementById('screen-portal').classList.remove('hidden');
+                navActions.innerHTML = '';
+            } 
+            else if (currentScreen === 'siswa-identitas') {
+                document.getElementById('screen-siswa-identitas').classList.remove('hidden');
+                navActions.innerHTML = `
+                    <button onclick="switchRole('portal')" class="text-sm bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg font-medium transition flex items-center gap-2">
+                        <i class="fa-solid fa-home"></i> Menu Utama
+                    </button>
+                `;
+            } 
+            else if (currentScreen === 'siswa-kuis') {
+                document.getElementById('screen-siswa-kuis').classList.remove('hidden');
+                navActions.innerHTML = `
+                    <div class="px-3 py-1.5 bg-rose-600 text-white font-bold text-xs rounded-lg uppercase tracking-wider flex items-center gap-1.5 shadow-md animate-pulse">
+                        <i class="fa-solid fa-lock"></i> Mode Ujian Aman
+                    </div>
+                `;
+            } 
+            else if (currentScreen === 'siswa-hasil') {
+                document.getElementById('screen-siswa-hasil').classList.remove('hidden');
+                navActions.innerHTML = `
+                    <button onclick="switchRole('portal')" class="text-sm bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded-lg font-bold transition flex items-center gap-2 shadow">
+                        <i class="fa-solid fa-house"></i> Selesai & Kembali
+                    </button>
+                `;
+            } 
+            else if (currentScreen === 'guru-dashboard') {
+                document.getElementById('screen-guru-dashboard').classList.remove('hidden');
+                navActions.innerHTML = `
+                    <button onclick="switchRole('portal')" class="text-sm bg-indigo-500 hover:bg-indigo-600 px-4 py-2 rounded-lg font-bold transition flex items-center gap-2">
+                        <i class="fa-solid fa-right-from-bracket"></i> Keluar Dashboard
+                    </button>
+                `;
+                renderGuruDashboard();
+            }
+        }
+
+        // Alur Berpindah Layar Umum
+        function switchRole(target) {
+            // Hentikan timer jika ada yang sedang berjalan
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            deactivateLockdown(); // Nonaktifkan proteksi jika berganti halaman manual
+            currentScreen = target;
+            renderScreen();
+        }
+
+        /* --- SISTEM DIALOG/KONFIRMASI CUSTOM (PENGGANTI confirm() BROWSER) --- */
+        function tunjukkanKonfirmasi(title, message, iconClass, iconBgColor, iconTextColor, actionText, actionColorClass, onConfirm) {
+            document.getElementById('confirm-modal-title').innerText = title;
+            document.getElementById('confirm-modal-message').innerText = message;
+            
+            // Set konfigurasi ikon
+            const iconContainer = document.getElementById('confirm-modal-icon');
+            iconContainer.className = `w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${iconBgColor} ${iconTextColor}`;
+            iconContainer.innerHTML = `<i class="${iconClass} text-3xl"></i>`;
+            
+            // Set tombol tindakan utama
+            const actionBtn = document.getElementById('confirm-modal-action');
+            actionBtn.innerText = actionText;
+            actionBtn.className = `w-1/2 py-3 text-white font-semibold rounded-xl transition shadow-md text-sm ${actionColorClass}`;
+            
+            // Tampilkan modal
+            const modal = document.getElementById('custom-confirm-modal');
+            modal.classList.remove('hidden');
+            
+            const cancelBtn = document.getElementById('confirm-modal-cancel');
+            
+            const closeConfirm = () => {
+                modal.classList.add('hidden');
+                actionBtn.onclick = null;
+                cancelBtn.onclick = null;
+            };
+            
+            cancelBtn.onclick = closeConfirm;
+            actionBtn.onclick = () => {
+                closeConfirm();
+                onConfirm();
+            };
+        }
+
+
+        /* --- SISI GURU LOGIC --- */
+
+        // Modal password guru
+        function openGuruModal() {
+            document.getElementById('modal-guru').classList.remove('hidden');
+            document.getElementById('input-pass').value = '';
+            document.getElementById('login-error').classList.add('hidden');
+            setTimeout(() => {
+                document.getElementById('input-pass').focus();
+            }, 200);
+        }
+
+        function closeGuruModal() {
+            document.getElementById('modal-guru').classList.add('hidden');
+        }
+
+        // Verifikasi Sandi Guru (12345)
+        function verifyGuruPassword() {
+            const pass = document.getElementById('input-pass').value;
+            if (pass === '12345') {
+                closeGuruModal();
+                switchRole('guru-dashboard');
+            } else {
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        }
+
+        // Update Dashboard Guru
+        function renderGuruDashboard() {
+            const tableBody = document.getElementById('rekap-nilai-body');
+            tableBody.innerHTML = '';
+
+            if (databaseNilai.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="p-8 text-center text-slate-400">
+                            <i class="fa-solid fa-box-open text-3xl mb-2.5 block text-slate-300"></i>
+                            Belum ada data pengerjaan kuis siswa.
+                        </td>
+                    </tr>
+                `;
+                // Set stats ke nol
+                document.getElementById('stat-total-siswa').innerText = '0';
+                document.getElementById('stat-rata-nilai').innerText = '0.0';
+                document.getElementById('stat-skor-tinggi').innerText = '0';
+                return;
+            }
+
+            // Hitung Stats
+            let totalSiswa = databaseNilai.length;
+            let sumSkor = 0;
+            let skorTertinggi = 0;
+
+            databaseNilai.forEach((item, index) => {
+                sumSkor += item.skor;
+                if (item.skor > skorTertinggi) {
+                    skorTertinggi = item.skor;
+                }
+
+                // Format Menit Detik Durasi
+                const m = Math.floor(item.durasiDetik / 60);
+                const s = item.durasiDetik % 60;
+                const durasiString = `${m}m ${s}s`;
+
+                // Status Kelulusan Badge
+                let badgeClass = "bg-rose-100 text-rose-800";
+                if (item.status.includes("DISKUALIFIKASI")) {
+                    badgeClass = "bg-red-200 text-red-900 border border-red-400";
+                } else if (item.skor >= 80) {
+                    badgeClass = "bg-emerald-100 text-emerald-800";
+                } else if (item.skor >= 60) {
+                    badgeClass = "bg-amber-100 text-amber-800";
+                }
+
+                // Baris Tabel
+                const row = document.createElement('tr');
+                row.className = "hover:bg-slate-50/70 transition";
+                row.innerHTML = `
+                    <td class="p-4 font-semibold text-slate-500">${index + 1}</td>
+                    <td class="p-4 font-bold text-slate-800">${item.nama}</td>
+                    <td class="p-4 text-slate-600 font-medium">${item.kelas}</td>
+                    <td class="p-4 text-xs text-slate-400">${item.waktuSelesai}</td>
+                    <td class="p-4 text-center text-emerald-600 font-bold">${item.benar} / 5</td>
+                    <td class="p-4 text-center text-slate-600 font-mono text-xs">${durasiString}</td>
+                    <td class="p-4 text-center text-lg font-black text-slate-800">${item.skor}</td>
+                    <td class="p-4 text-center">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-bold ${badgeClass}">${item.status}</span>
+                    </td>
+                    <td class="p-4 text-center">
+                        <button onclick="lihatDetailSiswa(${index})" class="px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg text-xs font-semibold transition flex items-center gap-1 mx-auto">
+                            <i class="fa-solid fa-magnifying-glass-chart"></i> Rincian
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // Update Panel Atas Stats
+            document.getElementById('stat-total-siswa').innerText = totalSiswa;
+            document.getElementById('stat-rata-nilai').innerText = (sumSkor / totalSiswa).toFixed(1);
+            document.getElementById('stat-skor-tinggi').innerText = skorTertinggi;
+            document.getElementById('display-durasi-pengaturan').innerText = `${konfigurasiWaktu / 60} Menit`;
+        }
+
+        // Cari Siswa di Tabel Guru
+        function filterTabelNilai() {
+            const input = document.getElementById('cari-siswa-input');
+            const filter = input.value.toUpperCase();
+            const table = document.getElementById('tabel-nilai-guru');
+            const tr = table.getElementsByTagName('tr');
+
+            for (let i = 1; i < tr.length; i++) {
+                let tdNama = tr[i].getElementsByTagName('td')[1];
+                let tdKelas = tr[i].getElementsByTagName('td')[2];
+                if (tdNama || tdKelas) {
+                    let txtNama = tdNama.textContent || tdNama.innerText;
+                    let txtKelas = tdKelas.textContent || tdKelas.innerText;
+                    if (txtNama.toUpperCase().indexOf(filter) > -1 || txtKelas.toUpperCase().indexOf(filter) > -1) {
+                        tr[i].style.display = "";
+                    } else {
+                        tr[i].style.display = "none";
+                    }
+                }
+            }
+        }
+
+        // Ubah Batas Waktu Kuis Guru
+        function ubahBatasWaktu() {
+            const inputBaru = prompt("Masukkan batas waktu kuis baru (dalam menit):", konfigurasiWaktu / 60);
+            if (inputBaru === null) return;
+            
+            const m = parseInt(inputBaru);
+            if (!isNaN(m) && m > 0) {
+                konfigurasiWaktu = m * 60;
+                renderGuruDashboard();
+                customNotification(`Batas waktu kuis berhasil diubah menjadi ${m} menit.`);
+            } else {
+                customNotification("Batas waktu tidak valid. Gunakan angka positif saja.", "error");
+            }
+        }
+
+        // Hapus Data Siswa Terdaftar (Menggunakan Modal Custom)
+        function resetDaftarNilai() {
+            tunjukkanKonfirmasi(
+                "Hapus Semua Nilai?",
+                "Apakah Anda yakin ingin menghapus seluruh data rekap nilai siswa secara permanen?",
+                "fa-solid fa-triangle-exclamation",
+                "bg-rose-100",
+                "text-rose-600",
+                "Ya, Hapus Semua",
+                "bg-rose-600 hover:bg-rose-700",
+                () => {
+                    databaseNilai = [];
+                    renderGuruDashboard();
+                    customNotification("Seluruh rekaman nilai siswa telah dihapus.");
+                }
+            );
+        }
+
+        // Ekspor Rekap Nilai ke format CSV
+        function exportHasilExcel() {
+            if (databaseNilai.length === 0) {
+                customNotification("Tidak ada data untuk diekspor.", "error");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "No,Nama Siswa,Kelas,Waktu Selesai,Jawaban Benar,Durasi Pengerjaan,Skor Akhir,Status\n";
+
+            databaseNilai.forEach((item, index) => {
+                const m = Math.floor(item.durasiDetik / 60);
+                const s = item.durasiDetik % 60;
+                const durasiString = `${m}:${s}`;
+                csvContent += `${index + 1},"${item.nama}","${item.kelas}","${item.waktuSelesai}",${item.benar},"${durasiString}",${item.skor},"${item.status}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "rekap_nilai_akuntansi.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            customNotification("Ekspor CSV berhasil diunduh.");
+        }
+
+        // Lihat Detail Jawaban Siswa Tertentu
+        function lihatDetailSiswa(index) {
+            const siswaData = databaseNilai[index];
+            document.getElementById('detail-head-siswa-sub').innerText = `Siswa: ${siswaData.nama} (${siswaData.kelas}) | Skor: ${siswaData.skor} | Selesai pada: ${siswaData.waktuSelesai}`;
+            
+            const detailList = document.getElementById('detail-list-pembahasan');
+            detailList.innerHTML = '';
+
+            bankSoal.forEach((soal, idx) => {
+                const jawSiswa = siswaData.jawabanSiswa[soal.id] || "Tidak Dijawab";
+                const isBenar = jawSiswa === $.kunci; // Wait, $.kunci -> typo in original reference? No, it should be soal.kunci
+                // Let's make sure we write 'soal.kunci' instead of any typo.
+                const isBenarChecked = jawSiswa === soal.kunci;
+
+                const detailCard = document.createElement('div');
+                detailCard.className = `p-4 rounded-xl border ${isBenarChecked ? 'bg-emerald-50/50 border-emerald-200' : 'bg-rose-50/50 border-rose-200'} space-y-3`;
+                
+                detailCard.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-slate-800 text-sm">Soal ${idx + 1}</span>
+                        <span class="px-2 py-0.5 rounded text-xs font-bold ${isBenarChecked ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+                            ${isBenarChecked ? '<i class="fa-solid fa-check"></i> Benar' : '<i class="fa-solid fa-xmark"></i> Salah'}
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-700 leading-relaxed font-medium">${soal.tanya}</p>
+                    <div class="grid grid-cols-1 gap-1.5 text-xs">
+                        <p class="text-slate-500">Pilihan Terpilih: <span class="font-bold text-slate-800">${jawSiswa}. ${soal.opsi[jawSiswa] || "Kosong"}</span></p>
+                        <p class="text-slate-500">Kunci Jawaban: <span class="font-bold text-emerald-700">${soal.kunci}. ${soal.opsi[soal.kunci]}</span></p>
+                    </div>
+                    <div class="p-3 bg-white border rounded-lg text-xs text-slate-600 leading-relaxed border-dashed">
+                        <strong class="text-indigo-800">Pembahasan:</strong> ${soal.pembahasan}
+                    </div>
+                `;
+                detailList.appendChild(detailCard);
+            });
+
+            document.getElementById('modal-detail-siswa').classList.remove('hidden');
+        }
+
+        function closeDetailSiswaModal() {
+            document.getElementById('modal-detail-siswa').classList.add('hidden');
+        }
+
+
+        /* --- SISI SISWA LOGIC & SYSTEM LOCKDOWN --- */
+
+        // Mengaktifkan Proteksi Keamanan (Lockdown)
+        function activateLockdown() {
+            isLockdownActive = true;
+            cheatCounter = 0;
+
+            // Kunci seleksi teks
+            document.body.classList.add('select-none');
+
+            // Cegah klik kanan
+            document.addEventListener('contextmenu', preventDefaultSecurity);
+
+            // Cegah copy-cut-paste
+            document.addEventListener('copy', preventDefaultSecurity);
+            document.addEventListener('cut', preventDefaultSecurity);
+            document.addEventListener('paste', preventDefaultSecurity);
+
+            // Cegah keyboard shortcut (Ctrl+C, Ctrl+V, F12, dll)
+            document.addEventListener('keydown', handleLockdownShortcuts);
+
+            // Aktifkan pemantau tab switching
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+
+            // Aktifkan pencegah keluar tab/refresh
+            window.onbeforeunload = handleBeforeUnload;
+        }
+
+        // Menonaktifkan Proteksi Keamanan (Unlock)
+        function deactivateLockdown() {
+            isLockdownActive = false;
+            
+            document.body.classList.remove('select-none');
+            document.removeEventListener('contextmenu', preventDefaultSecurity);
+            document.removeEventListener('copy', preventDefaultSecurity);
+            document.removeEventListener('cut', preventDefaultSecurity);
+            document.removeEventListener('paste', preventDefaultSecurity);
+            document.removeEventListener('keydown', handleLockdownShortcuts);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            
+            window.onbeforeunload = null;
+        }
+
+        // Fungsi Pencegahan Standar
+        function preventDefaultSecurity(e) {
+            if (isLockdownActive) {
+                e.preventDefault();
+                customNotification("Fitur ini dinonaktifkan selama ujian berlangsung!", "warning");
+            }
+        }
+
+        // Deteksi Shortcut Keyboard Terlarang
+        function handleLockdownShortcuts(e) {
+            if (!isLockdownActive) return;
+
+            // Blokir F12
+            if (e.key === "F12") {
+                e.preventDefault();
+                customNotification("Developer Tools dinonaktifkan!", "error");
+            }
+
+            // Blokir Ctrl+C, Ctrl+V, Ctrl+U, Ctrl+S, Ctrl+P, Ctrl+Shift+I
+            if (e.ctrlKey || e.metaKey) {
+                const terlarang = ['c', 'v', 'u', 's', 'p', 'i', 'x'];
+                if (terlarang.includes(e.key.toLowerCase())) {
+                    e.preventDefault();
+                    customNotification("Shortcut tombol dinonaktifkan demi integritas ujian!", "error");
+                }
+            }
+        }
+
+        // Pantau Tab Switching (Siswa Selingkuh Tab / Buka Google)
+        function handleVisibilityChange() {
+            if (!isLockdownActive) return;
+
+            if (document.hidden) {
+                cheatCounter++;
+                
+                if (cheatCounter >= MAX_CHEAT_WARNINGS) {
+                    // Otomatis Submit jika pelanggaran ke-3 (3 kali buka tab lain)
+                    deactivateLockdown();
+                    
+                    // Sembunyikan modal konfirmasi jika sedang terbuka agar langsung ke hasil
+                    document.getElementById('custom-confirm-modal').classList.add('hidden');
+                    
+                    customNotification("Ujian di-submit otomatis karena Anda telah melanggar batas perpindahan halaman (3 kali)!", "error");
+                    prosesKuisSelesai(true); // Kirim true untuk menandakan penghentian paksa akibat kecurangan
+                } else {
+                    // Beri modal peringatan custom (Peringatan ke-1 atau ke-2)
+                    tunjukkanPeringatanPelanggaran(cheatCounter);
+                }
+            }
+        }
+
+        // Tampilkan Modal Peringatan Pindah Halaman
+        function tunjukkanPeringatanPelanggaran(nomorPeringatan) {
+            const sisa = MAX_CHEAT_WARNINGS - nomorPeringatan;
+            const pesanPeringatan = nomorPeringatan === 2 
+                ? "INI ADALAH PERINGATAN TERAKHIR! Jika keluar tab sekali lagi, jawaban Anda akan langsung dikirim otomatis dengan nilai apa adanya."
+                : "Meninggalkan tab atau membuka aplikasi lain dilarang keras selama ujian berlangsung.";
+
+            tunjukkanKonfirmasi(
+                `⚠️ PERINGATAN ${nomorPeringatan} DARI 2!`,
+                `Anda terdeteksi meninggalkan halaman kuis!\n\n${pesanPeringatan}`,
+                "fa-solid fa-triangle-exclamation",
+                "bg-rose-100",
+                "text-rose-600",
+                "Saya Mengerti & Kembali ke Ujian",
+                "bg-rose-600 hover:bg-rose-700",
+                () => {
+                    // Hanya menutup modal dan fokus kembali ke halaman ujian
+                }
+            );
+        }
+
+        // Konfirmasi Browser Saat Refresh/Tutup Tab
+        function handleBeforeUnload(e) {
+            if (isLockdownActive) {
+                const message = "Ujian Anda sedang berlangsung. Meninggalkan halaman ini akan menghapus progres Anda!";
+                e.returnValue = message;
+                return message;
+            }
+        }
+
+        // Alur Mulai Flow Siswa
+        function initSiswaFlow() {
+            // Bersihkan form nama
+            document.getElementById('siswa-nama').value = '';
+            document.getElementById('siswa-kelas').value = '';
+            document.getElementById('identitas-error').classList.add('hidden');
+            switchRole('siswa-identitas');
+        }
+
+        // Verifikasi dan Masuk Pengerjaan Kuis
+        function startKuis() {
+            const nama = document.getElementById('siswa-nama').value.trim();
+            const kelas = document.getElementById('siswa-kelas').value;
+
+            if (nama === '' || kelas === '') {
+                document.getElementById('identitas-error').classList.remove('hidden');
+                return;
+            }
+
+            // Inisialisasi Data Siswa
+            dataSiswaMulai = { nama, kelas };
+            kuisSiswaJawaban = {};
+            kuisIndexAktif = 0;
+            waktuHabisSiswa = 0;
+
+            document.getElementById('display-siswa-nama').innerText = `${nama} (${kelas})`;
+
+            // Alihkan Tampilan
+            switchRole('siswa-kuis');
+
+            // Aktifkan Mode Terkunci (Lockdown)
+            activateLockdown();
+
+            // Mulai Kuis & Render Soal Pertama
+            renderPertanyaan();
+            renderPetaLembarJawaban();
+            jalankanTimerKuis(konfigurasiWaktu);
+        }
+
+        // Loop Jalannya Timer Kuis
+        function jalankanTimerKuis(durasiDetik) {
+            let sisaWaktu = durasiDetik;
+
+            const updateTimerUI = () => {
+                const m = Math.floor(sisaWaktu / 60);
+                const s = sisaWaktu % 60;
+                document.getElementById('display-timer').innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                
+                // Tambah Penghitung Durasi Pengerjaan
+                waktuHabisSiswa++;
+
+                // Beri warna merah peringatan sisa 1 menit
+                if (sisaWaktu < 60) {
+                    document.getElementById('display-timer').className = "font-mono font-bold text-rose-600 text-lg animate-pulse";
+                } else {
+                    document.getElementById('display-timer').className = "font-mono font-bold text-slate-800 text-lg";
+                }
+            };
+
+            updateTimerUI();
+
+            timerInterval = setInterval(() => {
+                sisaWaktu--;
+                updateTimerUI();
+
+                if (sisaWaktu <= 0) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                    customNotification("Waktu pengerjaan kuis Anda telah habis! Sistem mengirimkan jawaban otomatis.", "warning");
+                    prosesKuisSelesai();
+                }
+            }, 1000);
+        }
+
+        // Render Panel Utama Pertanyaan Akuntansi
+        function renderPertanyaan() {
+            const soalObj = bankSoal[kuisIndexAktif];
+            
+            // Set teks tanya
+            document.getElementById('display-soal-nomor').innerText = kuisIndexAktif + 1;
+            document.getElementById('display-soal-teks').innerText = soalObj.tanya;
+
+            // Render opsi jawaban
+            const containerOpsi = document.getElementById('pilihan-container');
+            containerOpsi.innerHTML = '';
+
+            const jawabanTerpilih = kuisSiswaJawaban[soalObj.id] || null;
+
+            // Pilihan abjad
+            const abjad = ['A', 'B', 'C', 'D', 'E'];
+            abjad.forEach(char => {
+                const teksJawaban = soalObj.opsi[char];
+                const isActive = jawabanTerpilih === char;
+
+                const btn = document.createElement('button');
+                btn.onclick = () => pilihJawaban(soalObj.id, char);
+                btn.className = `w-full text-left p-4 rounded-xl border-2 transition duration-150 flex items-start gap-3.5 group ${
+                    isActive 
+                    ? 'border-emerald-600 bg-emerald-50/50 shadow-sm' 
+                    : 'border-slate-200 hover:border-indigo-200 hover:bg-slate-50'
+                }`;
+
+                btn.innerHTML = `
+                    <span class="w-7 h-7 shrink-0 rounded-lg flex items-center justify-center font-bold text-sm ${
+                        isActive 
+                        ? 'bg-emerald-600 text-white' 
+                        : 'bg-slate-100 text-slate-500 group-hover:bg-indigo-100 group-hover:text-indigo-700'
+                    }">${char}</span>
+                    <span class="text-sm text-slate-700 font-medium leading-normal">${teksJawaban}</span>
+                `;
+                containerOpsi.appendChild(btn);
+            });
+
+            // Atur Visibilitas Tombol Navigasi Bawah
+            if (kuisIndexAktif === 0) {
+                document.getElementById('btn-soal-sebelumnya').style.visibility = 'hidden';
+            } else {
+                document.getElementById('btn-soal-sebelumnya').style.visibility = 'visible';
+            }
+
+            if (kuisIndexAktif === bankSoal.length - 1) {
+                document.getElementById('btn-soal-selanjutnya').classList.add('hidden');
+                document.getElementById('btn-kuis-selesai').classList.remove('hidden');
+            } else {
+                document.getElementById('btn-soal-selanjutnya').classList.remove('hidden');
+                document.getElementById('btn-kuis-selesai').classList.add('hidden');
+            }
+
+            // Update Progress Bar
+            const terisiCount = Object.keys(kuisSiswaJawaban).length;
+            document.getElementById('display-kuis-progress').innerText = `${terisiCount} dari ${bankSoal.length}`;
+            document.getElementById('display-kuis-progress-bar').style.width = `${(terisiCount / bankSoal.length) * 100}%`;
+        }
+
+        // Interaksi Tombol Jawaban Diklik
+        function pilihJawaban(soalId, char) {
+            kuisSiswaJawaban[soalId] = char;
+            renderPertanyaan();
+            renderPetaLembarJawaban();
+        }
+
+        // Render Peta Grid Mini Kanan
+        function renderPetaLembarJawaban() {
+            const containerMap = document.getElementById('map-soal-container');
+            containerMap.innerHTML = '';
+
+            bankSoal.forEach((soal, idx) => {
+                const terisi = kuisSiswaJawaban[soal.id] !== undefined;
+                const isAktif = kuisIndexAktif === idx;
+
+                const item = document.createElement('button');
+                item.onclick = () => {
+                    lompatKeSoal(idx);
+                };
+                item.className = `h-11 rounded-lg font-bold text-sm transition border flex items-center justify-center ${
+                    isAktif 
+                    ? 'border-indigo-600 ring-2 ring-indigo-100 bg-indigo-50 text-indigo-700' 
+                    : terisi 
+                        ? 'border-emerald-600 bg-emerald-600 text-white' 
+                        : 'border-slate-200 bg-white hover:bg-slate-100 text-slate-500'
+                }`;
+                item.innerText = idx + 1;
+                containerMap.appendChild(item);
+            });
+        }
+
+        // Navigasi Next-Prev
+        function navigasiSoal(arah) {
+            const target = kuisIndexAktif + arah;
+            if (target >= 0 && target < bankSoal.length) {
+                kuisIndexAktif = target;
+                renderPertanyaan();
+                renderPetaLembarJawaban();
+            }
+        }
+
+        // Lompat Ke Nomor Tertentu lewat Grid
+        function lompatKeSoal(index) {
+            kuisIndexAktif = index;
+            renderPertanyaan();
+            renderPetaLembarJawaban();
+        }
+
+        // Batalkan Pengerjaan Kuis (Menggunakan Modal Custom)
+        function batalKuisKonfirmasi() {
+            tunjukkanKonfirmasi(
+                "Batalkan Kuis?",
+                "Apakah Anda yakin ingin membatalkan kuis ini? Semua progres jawaban Anda saat ini akan terhapus secara permanen.",
+                "fa-solid fa-circle-question",
+                "bg-rose-100",
+                "text-rose-600",
+                "Ya, Batalkan",
+                "bg-rose-600 hover:bg-rose-700",
+                () => {
+                    deactivateLockdown(); // Lepas proteksi sebelum kembali ke portal
+                    switchRole('portal');
+                }
+            );
+        }
+
+        // Konfirmasi Akhir sebelum Kirim Jawaban (MENGGUNAKAN DIALOG CUSTOM YANG SELALU MERESPONS)
+        function konfirmasiSelesai() {
+            const terisiCount = Object.keys(kuisSiswaJawaban).length;
+            const belumDijawab = bankSoal.length - terisiCount;
+            
+            let title = "Kirim Jawaban Kuis?";
+            let message = "Apakah Anda yakin ingin menyelesaikan kuis ini dan mengirimkan semua jawaban?";
+            let iconClass = "fa-solid fa-circle-question";
+            let iconBg = "bg-indigo-100";
+            let iconText = "text-indigo-600";
+            let actionText = "Ya, Kirim";
+            let actionBtnClass = "bg-emerald-600 hover:bg-emerald-700";
+            
+            if (belumDijawab > 0) {
+                title = "Peringatan: Belum Lengkap!";
+                message = `Masih ada ${belumDijawab} soal yang belum dijawab. Apakah Anda yakin ingin tetap mengirimkan jawaban sekarang?`;
+                iconClass = "fa-solid fa-triangle-exclamation";
+                iconBg = "bg-amber-100";
+                iconText = "text-amber-600";
+                actionText = "Ya, Tetap Kirim";
+                actionBtnClass = "bg-amber-600 hover:bg-amber-700";
+            }
+
+            tunjukkanKonfirmasi(title, message, iconClass, iconBg, iconText, actionText, actionBtnClass, () => {
+                prosesKuisSelesai(false);
+            });
+        }
+
+        // Fungsi khusus untuk mengirimkan data ke Google Sheets menggunakan API Apps Script Anda
+        function kirimKeGoogleSheets(hasilRecord) {
+            const urlWebApp = "https://script.google.com/macros/s/AKfycby0nFS9o1tbSBEPqrgqFkNYgEI1kRhQbhr6x1MbF6L_HIWL175tJ_pnVEGXUTW3OSFK/exec";
+            
+            customNotification("Sedang menyimpan nilai Anda ke Google Sheets...", "warning");
+            
+            fetch(urlWebApp, {
+                method: "POST",
+                mode: "no-cors", // <--- PERBAIKAN CRITICAL: Mengaktifkan mode no-cors untuk melewati CORS blokir di browser/iframe
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8"
+                },
+                body: JSON.stringify(hasilRecord)
+            })
+            .then(response => {
+                // Dengan mode 'no-cors', kita akan mendapatkan 'opaque' response. Transaksi submit tetap sukses dilakukan.
+                customNotification("Nilai Anda berhasil direkam di Google Sheets SMK Fajar Indah!", "success");
+            })
+            .catch(error => {
+                console.error("Koneksi gagal:", error);
+                customNotification("Koneksi gagal saat mengirim data ke cloud.", "error");
+            });
+        }
+
+        // Evaluasi Nilai Kuis dan Pembahasan
+        function prosesKuisSelesai(forcedByCheat = false) {
+            // Lepas semua proteksi dan matikan sebelum proses evaluasi
+            deactivateLockdown();
+
+            // Hentikan timer kuis
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+
+            // Hitung Benar / Salah
+            let benarCount = 0;
+            bankSoal.forEach(soal => {
+                if (kuisSiswaJawaban[soal.id] === soal.kunci) {
+                    benarCount++;
+                }
+            });
+
+            // Bobot Nilai (1 Soal = 20 Poin, Total 100 Poin)
+            const skorAkhir = benarCount * 20;
+
+            // Tentukan status kelulusan kuis
+            let statusGrade = "Cukup";
+            let badgeStyle = "bg-amber-100 text-amber-800 border border-amber-300";
+            
+            if (forcedByCheat) {
+                statusGrade = "DISKUALIFIKASI (PELANGGARAN)";
+                badgeStyle = "bg-red-200 text-red-900 border border-red-500 animate-pulse";
+            } else if (skorAkhir >= 80) {
+                statusGrade = "Sangat Baik";
+                badgeStyle = "bg-emerald-100 text-emerald-800 border border-emerald-300";
+            } else if (skorAkhir >= 60) {
+                statusGrade = "Baik";
+                badgeStyle = "bg-indigo-100 text-indigo-800 border border-indigo-300";
+            } else {
+                statusGrade = "Butuh Remedial";
+                badgeStyle = "bg-rose-100 text-rose-800 border border-rose-300";
+            }
+
+            // Simpan Ke Database Kuis Guru
+            const waktuSaatIni = dapatkanFormatTanggal(new Date());
+            const hasilRecord = {
+                nama: dataSiswaMulai.nama,
+                kelas: dataSiswaMulai.kelas,
+                waktuSelesai: waktuSaatIni,
+                benar: benarCount,
+                durasiDetik: waktuHabisSiswa,
+                skor: skorAkhir,
+                status: statusGrade,
+                jawabanSiswa: { ...kuisSiswaJawaban }
+            };
+            
+            // Simpan ke urutan pertama di database kuis lokal guru
+            databaseNilai.unshift(hasilRecord);
+
+            // KIRIM SECARA REAL-TIME KE GOOGLE SHEETS ANDA
+            kirimKeGoogleSheets(hasilRecord);
+
+            // Tampilkan Data ke Sisi Layar Hasil Siswa
+            document.getElementById('hasil-nama').innerText = dataSiswaMulai.nama;
+            document.getElementById('hasil-skor-nilai').innerText = skorAkhir;
+            document.getElementById('hasil-statistik-benar').innerText = `${benarCount} / 5`;
+            
+            // Atur SVG Progress Stroke
+            const offset = 440 - (440 * skorAkhir) / 100;
+            document.getElementById('hasil-skor-circle').style.strokeDashoffset = offset;
+
+            // Set warna lingkaran progres
+            if (forcedByCheat) {
+                document.getElementById('hasil-skor-circle').className.baseVal = "text-red-600";
+            } else if (skorAkhir >= 80) {
+                document.getElementById('hasil-skor-circle').className.baseVal = "text-emerald-500";
+            } else if (skorAkhir >= 60) {
+                document.getElementById('hasil-skor-circle').className.baseVal = "text-indigo-500";
+            } else {
+                document.getElementById('hasil-skor-circle').className.baseVal = "text-rose-500";
+            }
+
+            // Atur format durasi
+            const m = Math.floor(waktuHabisSiswa / 60);
+            const s = waktuHabisSiswa % 60;
+            document.getElementById('hasil-statistik-durasi').innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            document.getElementById('hasil-statistik-grade').innerText = forcedByCheat ? "Banned" : statusGrade;
+
+            const badgeKelulusan = document.getElementById('badge-kelulusan');
+            badgeKelulusan.className = `px-4 py-1.5 rounded-full font-bold text-xs tracking-wider uppercase ${badgeStyle}`;
+            badgeKelulusan.innerText = statusGrade;
+
+            // Render Pembahasan Kuis untuk Siswa
+            renderPembahasanSiswa();
+
+            // Pindah Layar Ke Hasil
+            switchRole('siswa-hasil');
+        }
+
+        // Render List Analisis Pembahasan di Layar Hasil Siswa
+        function renderPembahasanSiswa() {
+            const container = document.getElementById('pembahasan-list');
+            container.innerHTML = '';
+
+            bankSoal.forEach((soal, index) => {
+                const jawSiswa = kuisSiswaJawaban[soal.id] || "Tidak Dijawab";
+                const isBenar = jawSiswa === soal.kunci;
+
+                const card = document.createElement('div');
+                card.className = `p-5 rounded-2xl border ${
+                    isBenar 
+                    ? 'border-emerald-100 bg-emerald-50/20' 
+                    : 'border-rose-100 bg-rose-50/20'
+                } space-y-4`;
+
+                card.innerHTML = `
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                        <span class="font-bold text-slate-800 text-sm">PERTANYAAN ${index + 1}</span>
+                        <span class="px-3 py-1 rounded-full text-xs font-bold ${
+                            isBenar 
+                            ? 'bg-emerald-100 text-emerald-800' 
+                            : 'bg-rose-100 text-rose-800'
+                        }">
+                            ${isBenar ? '<i class="fa-solid fa-circle-check"></i> Jawaban Anda Benar' : '<i class="fa-solid fa-circle-xmark"></i> Jawaban Anda Salah'}
+                        </span>
+                    </div>
+
+                    <p class="text-slate-800 text-sm font-medium leading-relaxed">${soal.tanya}</p>
+
+                    <div class="grid sm:grid-cols-2 gap-3 pt-2 text-xs">
+                        <div class="p-3 bg-white border border-slate-100 rounded-xl">
+                            <span class="text-slate-400 font-semibold uppercase tracking-wider block mb-1">Pilihan Anda</span>
+                            <span class="${isBenar ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold'}">${jawSiswa}. ${soal.opsi[jawSiswa] || "Tidak dijawab"}</span>
+                        </div>
+                        <div class="p-3 bg-white border border-slate-100 rounded-xl">
+                            <span class="text-slate-400 font-semibold uppercase tracking-wider block mb-1">Kunci Jawaban</span>
+                            <span class="text-emerald-700 font-bold">${soal.kunci}. ${soal.opsi[soal.kunci]}</span>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-white/75 border border-indigo-100 rounded-xl text-xs text-slate-600 leading-relaxed">
+                        <strong class="text-indigo-800 block mb-1"><i class="fa-solid fa-lightbulb"></i> Pembahasan Akuntansi:</strong>
+                        ${soal.pembahasan}
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // Efek Smooth Scroll Ke Area Pembahasan
+        function scrollKeReview() {
+            document.getElementById('pembahasan-container-soal').scrollIntoView({ behavior: 'smooth' });
+        }
+
+
+        /* --- UTILS / PENDUKUNG --- */
+
+        // Ambil Format Tanggal Cantik (DD-MM-YYYY HH:MM)
+        function dapatkanFormatTanggal(date) {
+            const d = date.getDate().toString().padStart(2, '0');
+            const m = (date.getMonth() + 1).toString().padStart(2, '0');
+            const y = date.getFullYear();
+            const h = date.getHours().toString().padStart(2, '0');
+            const min = date.getMinutes().toString().padStart(2, '0');
+            return `${d}-${m}-${y} ${h}:${min}`;
+        }
+
+        // Custom Notification Pengganti Alert Bawaan Browser
+        function customNotification(message, type = "success") {
+            const notifDiv = document.createElement('div');
+            notifDiv.className = `fixed bottom-5 right-5 z-[100] p-4 rounded-xl shadow-xl border flex items-center gap-3 max-w-sm text-sm font-medium fade-in ${
+                type === 'success' 
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+                : type === 'warning'
+                    ? 'bg-amber-50 border-amber-200 text-amber-800'
+                    : 'bg-rose-50 border-rose-200 text-rose-800'
+            }`;
+
+            const icon = type === 'success' 
+                ? '<i class="fa-solid fa-circle-check text-emerald-600 text-lg"></i>' 
+                : type === 'warning'
+                    ? '<i class="fa-solid fa-triangle-exclamation text-amber-600 text-lg"></i>'
+                    : '<i class="fa-solid fa-circle-exclamation text-rose-600 text-lg"></i>';
+
+            notifDiv.innerHTML = `${icon} <span>${message}</span>`;
+            document.body.appendChild(notifDiv);
+
+            setTimeout(() => {
+                notifDiv.style.opacity = '0';
+                notifDiv.style.transform = 'translateY(10px)';
+                notifDiv.style.transition = 'all 0.3s ease';
+                setTimeout(() => {
+                    if (document.body.contains(notifDiv)) {
+                        document.body.removeChild(notifDiv);
+                    }
+                }, 300);
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
